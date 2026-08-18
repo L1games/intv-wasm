@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <style>
+      body {
+        padding: 0;
+        margin: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: #000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden; 
+      }
+      #emscripten-canvas {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      #canvas {
+        aspect-ratio: 4 / 3;
+        width: 100%;
+        height: 100%;
+        max-width: 100vw;
+        max-height: 100vh;
+        object-fit: contain;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="emscripten-canvas">
+      <canvas width="640" height="480" id="canvas"></canvas>
+    </div>
+    <script type='text/javascript'>
+      var Module = {
+        canvas: document.getElementById('canvas'),
+        arguments: ["intv", "-cart", "/game.int"],
+
+      preRun: [function() {
+        Module.addRunDependency('load-files');
+
+        Promise.all([
+          fetch('/rom/exec.bin').then(response => {
+            if (!response.ok) throw new Error("Error in exec.bin");
+            return response.arrayBuffer();
+          }),
+          fetch('/rom/ro-3-9503-003.u21').then(response => {
+            if (!response.ok) throw new Error("Error in ro-3-9503-003.u21");
+            return response.arrayBuffer();
+          }),
+          fetch('game/game.int').then(response => {
+            if (!response.ok) throw new Error("Error in game.int");
+            return response.arrayBuffer();
+          })
+        ])
+        .then(([execBuffer, sticBuffer, gameBuffer]) => {
+          FS.mkdir('/roms');
+          FS.mkdir('/roms/intv');
+       
+          FS.writeFile('/roms/intv/exec.bin', new Uint8Array(execBuffer));
+          FS.writeFile('/roms/intv/ro-3-9503-003.u21', new Uint8Array(sticBuffer));
+          console.log("BIOS inyectada exitosamente en /roms/intv.");
+
+          FS.writeFile('/game.int', new Uint8Array(gameBuffer));
+          console.log("Correct.");
+          Module.removeRunDependency('load-files');
+        })
+        .catch(err => {
+          console.error("Error:", err);
+          });
+        }],
+      };
+    </script>
+    <script src="./mameintv.js"></script> 
+  </body>
+</html>
