@@ -44,15 +44,15 @@
         Module.addRunDependency('load-files');
 
         Promise.all([
-          fetch('/rom/exec.bin').then(response => {
+          fetch('./rom/exec.bin').then(response => {
             if (!response.ok) throw new Error("Error in exec.bin");
             return response.arrayBuffer();
           }),
-          fetch('/rom/ro-3-9503-003.u21').then(response => {
+          fetch('./rom/ro-3-9503-003.u21').then(response => {
             if (!response.ok) throw new Error("Error in ro-3-9503-003.u21");
             return response.arrayBuffer();
           }),
-          fetch('game/game.int').then(response => {
+          fetch('./game/game.int').then(response => {
             if (!response.ok) throw new Error("Error in game.int");
             return response.arrayBuffer();
           })
