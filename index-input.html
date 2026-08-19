@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <style>
+      body {
+        padding: 0;
+        margin: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: #000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden; 
+        font-family: sans-serif;
+        color: #fff;
+      }
+      #emscripten-canvas {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+		flex-direction: column;
+      }
+      #canvas {
+        aspect-ratio: 4 / 3;
+        width: 100%;
+        height: 100%;
+        max-width: 100vw;
+        max-height: 100vh;
+        object-fit: contain;
+      }
+      #upload-overlay {
+        position: absolute;
+        background: rgba(20, 20, 20, 0.95);
+        padding: 2rem;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        z-index: 10;
+        border: 1px solid #444;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+      }
+      #upload-overlay label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        font-size: 0.9rem;
+      }
+      #upload-overlay input {
+        color: #fff;
+      }
+      #start-btn {
+        padding: 0.75rem;
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        margin-top: 0.5rem;
+      }
+      #start-btn:hover {
+        background: #218838;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="upload-overlay">
+      <h2 style="margin: 0 0 0.5rem 0; font-size: 1.2rem;">Cargar archivos de Intellivision</h2>
+      <label>
+        Archivo EXEC BIOS (exec.bin):
+        <input type="file" id="input-exec" accept=".bin">
+      </label>
+      <label>
+        Archivo STIC BIOS (ro-3-9503-003.u21):
+        <input type="file" id="input-u21">
+      </label>
+      <label>
+        Juego:
+        <input type="file" id="input-game">
+      </label>
+      <button id="start-btn">Start Emulator</button>
+    </div>
+
+    <div id="emscripten-canvas">
+      <canvas width="640" height="480" id="canvas"></canvas>
+    </div>
+
+    <script type='text/javascript'>
+      document.getElementById('start-btn').addEventListener('click', async () => {
+        const execFile = document.getElementById('input-exec').files[0];
+        const u21File = document.getElementById('input-u21').files[0];
+        const gameFile = document.getElementById('input-game').files[0];
+
+        if (!execFile || !u21File || !gameFile) {
+          alert('Select the files to continue.');
+          return;
+        }
+
+        try {
+          const execBuffer = await execFile.arrayBuffer();
+          const u21Buffer = await u21File.arrayBuffer();
+          const gameBuffer = await gameFile.arrayBuffer();
+
+          document.getElementById('upload-overlay').style.display = 'none';
+
+          window.Module = {
+            canvas: document.getElementById('canvas'),
+            arguments: ["intv", "-cart", "/game.int"],
+
+            preRun: [function() {
+              Module.addRunDependency('load-files');
+
+              FS.mkdir('/roms');
+              FS.mkdir('/roms/intv');
+
+              FS.writeFile('/roms/intv/exec.bin', new Uint8Array(execBuffer));
+              FS.writeFile('/roms/intv/ro-3-9503-003.u21', new Uint8Array(u21Buffer));
+              FS.writeFile('/game.int', new Uint8Array(gameBuffer));
+
+              console.log("Good.");
+              Module.removeRunDependency('load-files');
+            }]
+          };
+
+          const script = document.createElement('script');
+          script.src = "./mameintv.js";
+          document.body.appendChild(script);
+
+        } catch (err) {
+          console.error("Error:", err);
+          alert("Error in localfiles.");
+        }
+      });
+    </script>
+  </body>
+</html>
